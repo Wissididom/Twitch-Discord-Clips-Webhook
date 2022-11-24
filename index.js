@@ -59,7 +59,7 @@ fetch(`https://id.twitch.tv/oauth2/token?client_id=${process.env.TWITCH_CLIENT_I
 					// username: displayName,
 					username: res.data[i].creator_name.trim(),
 					avatarURL: profileImageUrl,
-					content: `\`${res.data[i].title.trim()}\`: ${res.data[i].url}`
+					content: `\`\`${res.data[i].title.trim()}\`\`: ${res.data[i].url}`
 				}).catch(err => console.error(err));
 			}
 		}).catch(err => console.error(err));
