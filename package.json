@@ -9,8 +9,8 @@
   "author": "Wissididom",
   "license": "MIT",
   "dependencies": {
-    "discord.js": "^13.2.0",
-    "dotenv": "^10.0.0",
-    "node-fetch-commonjs": "^3.0.3"
+    "discord.js": "^14.6.0",
+    "dotenv": "^16.0.3",
+    "node-fetch-commonjs": "^3.2.4"
   }
 }
