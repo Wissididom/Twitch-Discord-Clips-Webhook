@@ -18,48 +18,72 @@ fetch(`https://id.twitch.tv/oauth2/token?client_id=${process.env.TWITCH_CLIENT_I
 		let date = new Date();
 		date.setDate(date.getDate() - 1);
 		fetch(`https://api.twitch.tv/helix/clips?broadcaster_id=${userId}&first=100&started_at=${date.toISOString()}`, {
-		//fetch(`https://api.twitch.tv/helix/clips?broadcaster_id=${userId}&first=100`, {
 			headers: {
 				'Client-ID': process.env.TWITCH_CLIENT_ID,
 				'Authorization': `Bearer ${access_token}`
 			}
-		}).then(res => res.json()).then(async res => {
-			/*res:
-			{
-				"data": [
-					{
-						"id": "slug",
-						"url": "https://clips.twitch.tv...",
-						"embed_url": "https://clips.twitch.tv/embed?...",
-						"broadcaster_id": "363",
-						"broadcaser_name": "wtwdsdg",
-						"creator_id": "5235",
-						"creator_name": "Clipcreator",
-						"video_id": "",
-						"game_id", "54354",
-						"language": "de",
-						"title": "Cliptitle",
-						"view_count": "53"
-						"created_at": "ISO-String",
-						"thumbnail_url": "https://clips-media-assets2.twitch.tv/...",
-						"duration": 30
-					}
-				]
+		}).then(clipRes => clipRes.json()).then(async clipRes => {
+			let clips = clipRes.data;
+			let creatorIds = [];
+			let videoIds = [];
+			if (clips.length < 1) return; // No clips to post
+			for (let i = 0; i < clips.length; i++) {
+				creatorIds.push(clips[i].creator_id);
+				if (clips[i].video_id.length > 0) {
+					videoIds.push(clips[i].video_id);
+				}
 			}
-			*/
-			let webhookClient = new WebhookClient({ url: process.env.DISCORD_WEBHOOK_URL});
-			for (let i = 0; i < res.data.length; i++) {
-				let profileImageUrl = (await fetch(`https://api.twitch.tv/helix/users?id=${res.data[i].creator_id}`, {
+			let usersQuery;
+			let profileImageUrls = [];
+			if (creatorIds.length > 0 && creatorIds.length <= 100) {
+				usersQuery = '?id=' + creatorIds.join('&id=');
+				profileImageUrls = (await fetch(`https://api.twitch.tv/helix/users${usersQuery}`, {
 					headers: {
 						'Client-ID': process.env.TWITCH_CLIENT_ID,
 						'Authorization': `Bearer ${access_token}`
 					}
-				}).then(res => res.json()).catch(err => console.error(err))).data[0].profile_image_url;
+				}).then(userRes => userRes.json()).catch(err => console.error(err))).data.map(x => {
+					return {
+						id: x.id,
+						profileImageUrl: x.profile_image_url
+					}
+				});
+			} else if (creatorIds > 0) {
+				console.error('More than 100 users to look up');
+			}
+			let videosQuery;
+			let videoTitles = [];
+			if (videoIds.length > 0 && videoIds.length <= 100) {
+				videosQuery = '?id=' + videoIds.join('&id=');
+				videoTitles = (await fetch(`https://api.twitch.tv/helix/videos${videosQuery}`, {
+					headers: {
+						'Client-ID': process.env.TWITCH_CLIENT_ID,
+						'Authorization': `Bearer ${access_token}`
+					}
+				}).then(videoRes => videoRes.json()).catch(err => console.error(err))).data.map(x => {
+					return {
+						id: x.id,
+						title: x.title
+					}
+				});
+			} else if (videoIds > 0) {
+				console.error('More than 100 videos to look up');
+			}
+			let webhookClient = new WebhookClient({ url: process.env.DISCORD_WEBHOOK_URL});
+			for (let i = 0; i < clips.length; i++) {
+				// SUPPRESS_UNTITLED=true
+				if (process.env.SUPPRESS_UNTITLED != undefined && process.env.SUPPRESS_UNTITLED != null && process.env.SUPPRESS_UNTITLED == 'true') {
+					let video = videoTitles.find(x => x.id == clips[i].video_id);
+					if (video) {
+						if (video.title == clips[i].title) {
+							continue;
+						}
+					}
+				}
 				webhookClient.send({
-					// username: displayName,
-					username: res.data[i].creator_name.trim(),
-					avatarURL: profileImageUrl,
-					content: `\`\`${res.data[i].title.trim()}\`\`: ${res.data[i].url}`
+					username: clips[i].creator_name.trim(),
+					avatarURL: profileImageUrls.find(x => x.id == clips[i].creator_id)?.profileImageUrl,
+					content: `\`\`${clips[i].title.trim()}\`\`: ${clips[i].url}`
 				}).catch(err => console.error(err));
 			}
 		}).catch(err => console.error(err));
