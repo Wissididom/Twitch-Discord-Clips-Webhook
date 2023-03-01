@@ -32,6 +32,7 @@ fetch(`https://id.twitch.tv/oauth2/token?client_id=${process.env.TWITCH_CLIENT_I
 					videoIds.push(clips[i].video_id);
 				}
 			}
+			creatorIds = [...new Set(creatorIds)]; // Remove duplicate entries
 			let usersQuery;
 			let profileImageUrls = [];
 			if (creatorIds.length > 0 && creatorIds.length <= 100) {
@@ -47,7 +48,7 @@ fetch(`https://id.twitch.tv/oauth2/token?client_id=${process.env.TWITCH_CLIENT_I
 						profileImageUrl: x.profile_image_url
 					}
 				});
-			} else if (creatorIds > 0) {
+			} else if (creatorIds.length > 100) {
 				console.error('More than 100 users to look up');
 			}
 			let videosQuery;
@@ -65,7 +66,7 @@ fetch(`https://id.twitch.tv/oauth2/token?client_id=${process.env.TWITCH_CLIENT_I
 						title: x.title
 					}
 				});
-			} else if (videoIds > 0) {
+			} else if (videoIds.length > 100) {
 				console.error('More than 100 videos to look up');
 			}
 			let webhookClient = new WebhookClient({ url: process.env.DISCORD_WEBHOOK_URL});
@@ -73,18 +74,14 @@ fetch(`https://id.twitch.tv/oauth2/token?client_id=${process.env.TWITCH_CLIENT_I
 				// SUPPRESS_UNTITLED=true
 				if (process.env.SUPPRESS_UNTITLED != undefined && process.env.SUPPRESS_UNTITLED != null && process.env.SUPPRESS_UNTITLED == 'true') {
 					let video = videoTitles.find(x => x.id == clips[i].video_id);
-					if (video) {
-						if (video.title == clips[i].title) {
-							continue;
-						}
-					}
+					if (video && video.title == clips[i].title) continue;
 				}
-				webhookClient.send({
+				await webhookClient.send({
 					username: clips[i].creator_name.trim(),
 					avatarURL: profileImageUrls.find(x => x.id == clips[i].creator_id)?.profileImageUrl,
 					content: `\`\`${clips[i].title.trim()}\`\`: ${clips[i].url}`
-				}).catch(err => console.error(err));
+				}).catch(err => console.error);
 			}
-		}).catch(err => console.error(err));
-	}).catch(err => console.error(err));
-}).catch(err => console.error(err));
+		}).catch(err => console.error);
+	}).catch(err => console.error);
+}).catch(err => console.error);
