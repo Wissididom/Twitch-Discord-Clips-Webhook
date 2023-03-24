@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-NodeJS v18+ (because I use inbuild fetch without any fetch-library). It probably works if you install `node-fetch-commonjs` but I have not tested that and it is not supported.
+NodeJS v18+ (because I use inbuild fetch without any fetch-library). It probably works if you install and import `node-fetch-commonjs` (`npm i node-fetch-commonjs` and `const fetch = require('node-fetch-commonjs');`) but I have not tested that and therefore it is not supported.
 
 ## How to setup
 
