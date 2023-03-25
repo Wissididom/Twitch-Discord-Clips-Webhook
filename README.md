@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-NodeJS v18+ (because I use inbuild fetch without any fetch-library). It probably works if you install and import `node-fetch-commonjs` (`npm i node-fetch-commonjs` and `const fetch = require('node-fetch-commonjs');`) but I have not tested that and therefore it is not supported.
+NodeJS v18+ (because I use inbuilt fetch without any fetch-library). It probably works if you install and import `node-fetch-commonjs` (`npm i node-fetch-commonjs` and `const fetch = require('node-fetch-commonjs');`) but I have not tested that and therefore it is not supported.
 
 ## How to setup
 
@@ -14,7 +14,7 @@ Clone this repository
 
 ### Step 2
 
-Copy `example.env` into `.env` and adjust it's values. Optionally you can also give the options inside `example.env` with the correct values as environment variables to the application.
+Copy `example.env` into `.env` and adjust it's values. Optionally you can also provide the options inside `example.env` with the correct values as environment variables to the application.
 
 ### Step 3
 
