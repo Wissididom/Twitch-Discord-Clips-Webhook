@@ -1,5 +1,5 @@
 import WebhookClient from "discord.js";
-import * as DotEnv from 'dotenv';
+import * as DotEnv from "dotenv";
 
 DotEnv.config();
 
@@ -24,15 +24,17 @@ const broadcasterId = broadcaster.data[0].id;
 const broadcasterDisplayName = broadcaster.data[0].display_name;
 let date = new Date();
 date.setDate(date.getDate() - 1);
-const clips = (await fetch(
-  `https://api.twitch.tv/helix/clips?broadcaster_id=${userId}&first=100&started_at=${date.toISOString()}`,
-  {
-    headers: {
-      "Client-ID": process.env.TWITCH_CLIENT_ID,
-      Authorization: `Bearer ${access_token}`,
+const clips = (
+  await fetch(
+    `https://api.twitch.tv/helix/clips?broadcaster_id=${userId}&first=100&started_at=${date.toISOString()}`,
+    {
+      headers: {
+        "Client-ID": process.env.TWITCH_CLIENT_ID,
+        Authorization: `Bearer ${access_token}`,
+      },
     },
-  },
-).then((res) => res.json())).data;
+  ).then((res) => res.json())
+).data;
 let creatorIds = [];
 let videoIds = [];
 if (clips.length < 1) return; // No clips to post
@@ -68,15 +70,12 @@ let videoTitles = [];
 if (videoIds.length > 0 && videoIds.length <= 100) {
   videosQuery = "?id=" + videoIds.join("&id=");
   videoTitles = (
-    await fetch(
-      `https://api.twitch.tv/helix/videos${videosQuery}`,
-      {
-        headers: {
-          "Client-ID": process.env.TWITCH_CLIENT_ID,
-          Authorization: `Bearer ${access_token}`,
-        },
+    await fetch(`https://api.twitch.tv/helix/videos${videosQuery}`, {
+      headers: {
+        "Client-ID": process.env.TWITCH_CLIENT_ID,
+        Authorization: `Bearer ${access_token}`,
       },
-    )
+    })
       .then((res) => res.json())
       .catch((err) => console.error(err))
   ).data.map((x) => {
@@ -100,9 +99,12 @@ for (let i = 0; i < clips.length; i++) {
     let video = videoTitles.find((x) => x.id == clips[i].video_id);
     if (video && video.title == clips[i].title) continue;
   }
-  await webhookClient.send({
-    username: clips[i].creator_name.trim(),
-    avatarURL: profileImageUrls.find((x) => x.id == clips[i].creator_id)?.profileImageUrl,
-    content: `\`\`${clips[i].title.trim()}\`\`: ${clips[i].url}`,
-  }).catch((err) => console.error);
+  await webhookClient
+    .send({
+      username: clips[i].creator_name.trim(),
+      avatarURL: profileImageUrls.find((x) => x.id == clips[i].creator_id)
+        ?.profileImageUrl,
+      content: `\`\`${clips[i].title.trim()}\`\`: ${clips[i].url}`,
+    })
+    .catch((err) => console.error);
 }
