@@ -109,12 +109,21 @@ for (let i = 0; i < clips.length; i++) {
     let video = videoTitles.find((x) => x.id == clips[i].video_id);
     if (video && video.title == clips[i].title) continue;
   }
+  let content = `\`\`${clips[i].title.trim()}\`\`: ${clips[i].url}`;
+  if (
+      process.env.SHOW_CREATED_DATE != undefined &&
+      process.env.SHOW_CREATED_DATE != null &&
+      process.env.SHOW_CREATED_DATE == "true"
+    ) {
+      let time = new Date(clips[i].created_at).getTime() / 1000;
+      content += ` (Created at: <t:${time}:F> - <t:${time}:R>)`;
+    }
   await webhookClient
     .send({
       username: clips[i].creator_name.trim(),
       avatarURL: profileImageUrls.find((x) => x.id == clips[i].creator_id)
         ?.profileImageUrl,
-      content: `\`\`${clips[i].title.trim()}\`\`: ${clips[i].url}`,
+      content,
     })
     .catch((err) => console.error);
 }
