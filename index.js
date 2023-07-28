@@ -31,7 +31,54 @@ if (!broadcaster.data) {
 }
 const broadcasterId = broadcaster.data[0].id;
 const broadcasterDisplayName = broadcaster.data[0].display_name;
+const pollingInterval = process.env.POLLING_INTERVAL ?? "1d";
 let date = new Date();
+switch (pollingInterval.substring(pollingInterval.length - 1)) {
+  case "d": // days
+    date.setDate(
+      date.getDate() -
+        parseInt(pollingInterval.substring(0, pollingInterval.length - 1)),
+    );
+    break;
+  case "M": // months
+    date.setMonth(
+      date.getMonth() -
+        parseInt(pollingInterval.substring(0, pollingInterval.length - 1)),
+    );
+    break;
+  case "y": // years
+    date.setFullYear(
+      date.getFullYear() -
+        parseInt(pollingInterval.substring(0, pollingInterval.length - 1)),
+    );
+    break;
+  case "h": // hours
+    date.setHours(
+      date.getHours() -
+        parseInt(pollingInterval.substring(0, pollingInterval.length - 1)),
+    );
+    break;
+  case "m": // minutes
+    date.setMinutes(
+      date.getMinutes() -
+        parseInt(pollingInterval.substring(0, pollingInterval.length - 1)),
+    );
+    break;
+  case "s": // seconds
+    date.setSeconds(
+      date.getSeconds() -
+        parseInt(pollingInterval.substring(0, pollingInterval.length - 1)),
+    );
+    break;
+  default: // else
+    console.error(
+      `Only d (days), M (months), y (years), h (hours), m (minutes) and s (seconds) are allowed! You used ${pollingInterval.substring(
+        pollingInterval.length - 1,
+      )}`,
+    );
+    process.exit(78); // EX_CONFIG
+    break;
+}
 date.setDate(date.getDate() - 1);
 const clips = (
   await fetch(
