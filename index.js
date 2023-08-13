@@ -31,8 +31,39 @@ if (!broadcaster.data) {
 }
 const broadcasterId = broadcaster.data[0].id;
 const broadcasterDisplayName = broadcaster.data[0].display_name;
+const pollingInterval = process.env.POLLING_INTERVAL ?? "1d";
+const pollingIntervalNumber = parseInt(
+  pollingInterval.substring(0, pollingInterval.length - 1),
+);
 let date = new Date();
-date.setDate(date.getDate() - 1);
+switch (pollingInterval.substring(pollingInterval.length - 1)) {
+  case "d": // days
+    date.setDate(date.getDate() - pollingIntervalNumber);
+    break;
+  case "M": // months
+    date.setMonth(date.getMonth() - pollingIntervalNumber);
+    break;
+  case "y": // years
+    date.setFullYear(date.getFullYear() - pollingIntervalNumber);
+    break;
+  case "h": // hours
+    date.setHours(date.getHours() - pollingIntervalNumber);
+    break;
+  case "m": // minutes
+    date.setMinutes(date.getMinutes() - pollingIntervalNumber);
+    break;
+  case "s": // seconds
+    date.setSeconds(date.getSeconds() - pollingIntervalNumber);
+    break;
+  default: // else
+    console.error(
+      `Only d (days), M (months), y (years), h (hours), m (minutes) and s (seconds) are allowed! You used ${pollingInterval.substring(
+        pollingInterval.length - 1,
+      )}`,
+    );
+    process.exit(78); // EX_CONFIG
+    break;
+}
 const clips = (
   await fetch(
     `https://api.twitch.tv/helix/clips?broadcaster_id=${broadcasterId}&first=100&started_at=${date.toISOString()}`,
