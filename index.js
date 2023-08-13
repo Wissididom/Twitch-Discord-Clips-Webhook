@@ -32,43 +32,28 @@ if (!broadcaster.data) {
 const broadcasterId = broadcaster.data[0].id;
 const broadcasterDisplayName = broadcaster.data[0].display_name;
 const pollingInterval = process.env.POLLING_INTERVAL ?? "1d";
+const pollingIntervalNumber = parseInt(
+  pollingInterval.substring(0, pollingInterval.length - 1),
+);
 let date = new Date();
 switch (pollingInterval.substring(pollingInterval.length - 1)) {
   case "d": // days
-    date.setDate(
-      date.getDate() -
-        parseInt(pollingInterval.substring(0, pollingInterval.length - 1)),
-    );
+    date.setDate(date.getDate() - pollingIntervalNumber);
     break;
   case "M": // months
-    date.setMonth(
-      date.getMonth() -
-        parseInt(pollingInterval.substring(0, pollingInterval.length - 1)),
-    );
+    date.setMonth(date.getMonth() - pollingIntervalNumber);
     break;
   case "y": // years
-    date.setFullYear(
-      date.getFullYear() -
-        parseInt(pollingInterval.substring(0, pollingInterval.length - 1)),
-    );
+    date.setFullYear(date.getFullYear() - pollingIntervalNumber);
     break;
   case "h": // hours
-    date.setHours(
-      date.getHours() -
-        parseInt(pollingInterval.substring(0, pollingInterval.length - 1)),
-    );
+    date.setHours(date.getHours() - pollingIntervalNumber);
     break;
   case "m": // minutes
-    date.setMinutes(
-      date.getMinutes() -
-        parseInt(pollingInterval.substring(0, pollingInterval.length - 1)),
-    );
+    date.setMinutes(date.getMinutes() - pollingIntervalNumber);
     break;
   case "s": // seconds
-    date.setSeconds(
-      date.getSeconds() -
-        parseInt(pollingInterval.substring(0, pollingInterval.length - 1)),
-    );
+    date.setSeconds(date.getSeconds() - pollingIntervalNumber);
     break;
   default: // else
     console.error(
