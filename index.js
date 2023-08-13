@@ -64,7 +64,6 @@ switch (pollingInterval.substring(pollingInterval.length - 1)) {
     process.exit(78); // EX_CONFIG
     break;
 }
-date.setDate(date.getDate() - 1);
 const clips = (
   await fetch(
     `https://api.twitch.tv/helix/clips?broadcaster_id=${broadcasterId}&first=100&started_at=${date.toISOString()}`,
