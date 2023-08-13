@@ -101,20 +101,12 @@ const webhookClient = new WebhookClient({
   url: process.env.DISCORD_WEBHOOK_URL,
 });
 for (let i = 0; i < clips.length; i++) {
-  if (
-    process.env.SUPPRESS_UNTITLED != undefined &&
-    process.env.SUPPRESS_UNTITLED != null &&
-    process.env.SUPPRESS_UNTITLED == "true"
-  ) {
+  if (process.env.SUPPRESS_UNTITLED == "true") {
     let video = videoTitles.find((x) => x.id == clips[i].video_id);
     if (video && video.title == clips[i].title) continue;
   }
   let content = `\`\`${clips[i].title.trim()}\`\`: ${clips[i].url}`;
-  if (
-    process.env.SHOW_CREATED_DATE != undefined &&
-    process.env.SHOW_CREATED_DATE != null &&
-    process.env.SHOW_CREATED_DATE == "true"
-  ) {
+  if (process.env.SHOW_CREATED_DATE == "true") {
     let time = new Date(clips[i].created_at).getTime() / 1000;
     content += ` (Created at: <t:${time}:F> - <t:${time}:R>)`;
   }
