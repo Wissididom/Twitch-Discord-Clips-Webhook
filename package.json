@@ -11,6 +11,6 @@
   "license": "MIT",
   "dependencies": {
     "discord.js": "^14.14.1",
-    "dotenv": "^16.4.2"
+    "dotenv": "^16.4.3"
   }
 }
