@@ -1,7 +1,5 @@
 import { WebhookClient } from "discord.js";
-import * as DotEnv from "dotenv";
-
-DotEnv.config();
+import "dotenv/config";
 
 const token = await fetch(
   `https://id.twitch.tv/oauth2/token?client_id=${process.env.TWITCH_CLIENT_ID}&client_secret=${process.env.TWITCH_CLIENT_SECRET}&grant_type=client_credentials`,
@@ -75,7 +73,7 @@ const clips = (
     },
   ).then((res) => res.json())
 ).data;
-console.log(JSON.stringify(clips));
+console.log(JSON.stringify(clips, null, 2));
 let creatorIds = [];
 let videoIds = [];
 if (clips.length < 1) process.exit(); // No clips to post
