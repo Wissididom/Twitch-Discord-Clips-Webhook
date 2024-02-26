@@ -5,9 +5,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
-    "test": "echo \"Error: no test specified\" && exit 1"
-    "check-format": "prettier --check ."
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "check-format": "prettier --check .",
     "format": "prettier --write ."
   },
   "author": "Wissididom",
