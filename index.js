@@ -152,46 +152,55 @@ for (let i = 0; i < clips.length; i++) {
             {
               name: "Game",
               value: clips[i].game_id ? clips[i].game_id : "N/A",
+              inline: true,
             },
             {
               name: "Streamer",
               value: clips[i].broadcaster_name
                 ? clips[i].broadcaster_name
                 : "N/A",
+              inline: true,
             },
             {
               name: "Clipper",
               value: clips[i].creator_name ? clips[i].creator_name : "N/A",
+              inline: true,
             },
             {
               name: "VOD",
               value: clips[i].video_id ? clips[i].video_id : "N/A",
+              inline: true,
             },
             {
               name: "Language",
               value: clips[i].language ? clips[i].language : "N/A",
+              inline: true,
             },
             {
               name: "Views",
               value: clips[i].view_count
                 ? clips[i].view_count.toString()
                 : "N/A",
+              inline: true,
             },
             {
               name: "Created At",
               value: clips[i].created_at
                 ? `<t:${new Date(clips[i].created_at).getTime() / 1000}:F>`
                 : "N/A",
+              inline: true,
             },
             {
               name: "Duration",
               value: clips[i].duration ? `${clips[i].duration} seconds` : "N/A",
+              inline: true,
             },
             {
               name: "VOD Offset",
               value: clips[i].vod_offset
                 ? `${clips[i].vod_offset} seconds`
                 : "N/A",
+              inline: true,
             },
             {
               name: "Featured",
@@ -199,6 +208,7 @@ for (let i = 0; i < clips.length; i++) {
                 clips[i].is_featured === false || clips[i].is_featured === true
                   ? clips[i].is_featured.toString()
                   : "N/A",
+              inline: true,
             },
           )
           .setImage(clips[i].thumbnail_url),
