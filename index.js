@@ -149,19 +149,57 @@ for (let i = 0; i < clips.length; i++) {
         new EmbedBuilder()
           .setDescription(`[${clips[i].title.trim()}](${clips[i].url})`)
           .addFields(
-            { name: "Game", value: clips[i].game_id },
-            { name: "Streamer", value: clips[i].broadcaster_name },
-            { name: "Clipper", value: clips[i].creator_name },
-            { name: "VOD", value: clips[i].video_id },
-            { name: "Language", value: clips[i].language },
-            { name: "Views", value: clips[i].view_count },
+            {
+              name: "Game",
+              value: clips[i].game_id ? clips[i].game_id : "N/A",
+            },
+            {
+              name: "Streamer",
+              value: clips[i].broadcaster_name
+                ? clips[i].broadcaster_name
+                : "N/A",
+            },
+            {
+              name: "Clipper",
+              value: clips[i].creator_name ? clips[i].creator_name : "N/A",
+            },
+            {
+              name: "VOD",
+              value: clips[i].video_id ? clips[i].video_id : "N/A",
+            },
+            {
+              name: "Language",
+              value: clips[i].language ? clips[i].language : "N/A",
+            },
+            {
+              name: "Views",
+              value: clips[i].view_count
+                ? clips[i].view_count.toString()
+                : "N/A",
+            },
             {
               name: "Created At",
-              value: `<t:${new Date(clips[i].created_at).getTime() / 1000}:F>`,
+              value: clips[i].created_at
+                ? `<t:${new Date(clips[i].created_at).getTime() / 1000}:F>`
+                : "N/A",
             },
-            { name: "Duration", value: `${clips[i].duration} seconds` },
-            { name: "VOD Offset", value: `${clips[i].vod_offset} seconds` },
-            { name: "Featured", value: clips[i].is_featured },
+            {
+              name: "Duration",
+              value: clips[i].duration ? `${clips[i].duration} seconds` : "N/A",
+            },
+            {
+              name: "VOD Offset",
+              value: clips[i].vod_offset
+                ? `${clips[i].vod_offset} seconds`
+                : "N/A",
+            },
+            {
+              name: "Featured",
+              value:
+                clips[i].is_featured === false || clips[i].is_featured === true
+                  ? clips[i].is_featured.toString()
+                  : "N/A",
+            },
           )
           .setImage(clips[i].thumbnail_url),
       ],
