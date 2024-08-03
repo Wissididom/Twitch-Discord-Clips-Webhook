@@ -168,7 +168,9 @@ for (let i = 0; i < clips.length; i++) {
             },
             {
               name: "VOD",
-              value: clips[i].video_id ? clips[i].video_id : "N/A",
+              value: clips[i].video_id
+                ? `https://www.twitch.tv/videos/${clips[i].video_id}`
+                : "N/A",
               inline: true,
             },
             {
