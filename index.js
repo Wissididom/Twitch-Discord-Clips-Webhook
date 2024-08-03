@@ -76,14 +76,20 @@ const clips = (
 console.log(JSON.stringify(clips, null, 2));
 let creatorIds = [];
 let videoIds = [];
+let gameIds = [];
 if (clips.length < 1) process.exit(); // No clips to post
 for (let i = 0; i < clips.length; i++) {
   creatorIds.push(clips[i].creator_id);
   if (clips[i].video_id.length > 0) {
     videoIds.push(clips[i].video_id);
   }
+  if (clips[i].game_id.length > 0) {
+    gameIds.push(clips[i].game_id);
+  }
 }
 creatorIds = [...new Set(creatorIds)]; // Remove duplicate entries
+videoIds = [...new Set(videoIds)]; // Remove duplicate entries
+gameIds = [...new Set(gameIds)]; // Remove duplicate entries
 let usersQuery;
 let profileImageUrls = [];
 if (creatorIds.length > 0 && creatorIds.length <= 100) {
@@ -126,6 +132,31 @@ if (videoIds.length > 0 && videoIds.length <= 100) {
 } else if (videoIds.length > 100) {
   console.error("More than 100 videos to look up");
 }
+let gamesQuery;
+let gameNames = [];
+if (gameIds.length > 0 && gameIds.length <= 100) {
+  gamesQuery = "?id=" + gameIds.join("&id=");
+  gameNames = (
+    await fetch(`https://api.twitch.tv/helix/games${gamesQuery}`, {
+      headers: {
+        "Client-ID": process.env.TWITCH_CLIENT_ID,
+        Authorization: `Bearer ${access_token}`,
+      },
+    })
+      .then((res) => res.json())
+      .catch((err) => console.error(err))
+  ).data.map((x) => {
+    return {
+      id: x.id,
+      name: x.name,
+      boxart: x.box_art_url
+        .replace("{width}", "600")
+        .replace("{height}", "800"),
+    };
+  });
+} else if (gameIds.length > 100) {
+  console.error("More than 100 games to look up");
+}
 const webhookClient = new WebhookClient({
   url: process.env.DISCORD_WEBHOOK_URL,
 });
@@ -151,7 +182,9 @@ for (let i = 0; i < clips.length; i++) {
           .addFields(
             {
               name: "Game",
-              value: clips[i].game_id ? clips[i].game_id : "N/A",
+              value: clips[i].game_id
+                ? gameNames.find((x) => x.id == clips[i].game_id)?.name
+                : "N/A",
               inline: true,
             },
             {
@@ -212,6 +245,11 @@ for (let i = 0; i < clips.length; i++) {
                   : "N/A",
               inline: true,
             },
+          )
+          .setThumbnail(
+            clips[i].game_id
+              ? gameNames.find((x) => x.id == clips[i].game_id)?.boxart
+              : undefined,
           )
           .setImage(clips[i].thumbnail_url),
       ],
