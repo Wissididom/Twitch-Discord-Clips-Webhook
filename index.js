@@ -178,7 +178,8 @@ for (let i = 0; i < clips.length; i++) {
       content,
       embeds: [
         new EmbedBuilder()
-          .setDescription(`[${clips[i].title.trim()}](${clips[i].url})`)
+          .setTitle(clips[i].title.trim())
+          .setURL(clips[i].url)
           .addFields(
             {
               name: "Game",
