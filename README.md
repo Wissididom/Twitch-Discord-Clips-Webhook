@@ -21,10 +21,14 @@ Copy `example.env` into `.env` and adjust it's values. Optionally you can also p
 
 ### Step 3
 
+Copy `config.example.json` to `.config.json` and modify it to your liking, you can even specify multiple streamers.
+
+### Step 4
+
 Install dependencies
 
 `npm i` or `npm install`
 
-### Step 4
+### Step 5
 
-Run it with `node index.js` or specify it to run as a cronjob every 24h. The script ONLY checks once if there were clips made in the last 24h. It does NOT run itself every 24h.
+Run it with `node index.js`. The polling interval and the cron expression can be given in the `.config.json` file
