@@ -1,0 +1,11 @@
+[
+  {
+    "twitchLogin": "wissididom",
+    "cron": "0 0 * * * *",
+    "timezone": "Europe/Berlin",
+    "discordWebhook": "https://",
+    "pollingInterval": "1d",
+    "suppressUntitled": true,
+    "showCreatedDate": false
+  }
+]
