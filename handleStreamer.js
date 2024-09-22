@@ -76,7 +76,9 @@ export async function handleStreamer(
       },
     ).then((res) => res.json())
   ).data;
-  console.log(JSON.stringify(clips, null, 2));
+  console.log(
+    `${broadcasterDisplayName} (${broadcasterLogin}): ${JSON.stringify(clips, null, 2)}`,
+  );
   let creatorIds = [];
   let videoIds = [];
   let gameIds = [];
