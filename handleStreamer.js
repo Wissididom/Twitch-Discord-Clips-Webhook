@@ -31,6 +31,11 @@ export async function handleStreamer(
     //process.exit(77); // EX_NOPERM
     process.exit(78); // EX_CONFIG
   }
+  if (broadcaster.data.length < 1) {
+    console.log(`Broadcaster ${broadcasterLogin} not found!`);
+    return;
+  }
+  console.log("Test:" + JSON.stringify(broadcaster.data));
   const broadcasterId = broadcaster.data[0].id;
   const broadcasterDisplayName = broadcaster.data[0].display_name;
   const pollingIntervalNumber = parseInt(
