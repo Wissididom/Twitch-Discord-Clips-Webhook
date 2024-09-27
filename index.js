@@ -6,6 +6,13 @@ import { handleStreamer } from "./handleStreamer.js";
 const config = JSON.parse(fs.readFileSync(".config.json"));
 
 for (let streamer of config) {
+  console.log(
+    "Schedule job: " +
+      JSON.stringify(streamer, (key, value) => {
+        if (key == "discordWebhook") return "REDACTED";
+        return value;
+      }),
+  );
   cron.schedule(
     streamer.cron,
     async () => {
