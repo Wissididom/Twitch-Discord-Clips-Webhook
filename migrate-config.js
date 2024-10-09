@@ -29,3 +29,7 @@ const config = JSON.parse(fs.readFileSync(".config.json"));
 config.push(configObject);
 
 fs.writeFileSync(".config.json", JSON.stringify(configObject, null, 2));
+
+const newEnv = `TWITCH_CLIENT_ID=${process.env.TWITCH_CLIENT_ID}\nTWITCH_CLIENT_SECRET=${process.env.TWITCH_CLIENT_SECRET}`;
+
+fs.writeFileSync(".env", newEnv);
