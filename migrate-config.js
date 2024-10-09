@@ -24,12 +24,20 @@ const configObject = {
     showCreatedDate: process.env.SHOW_CREATED_DATE.toLowerCase() == "true",
 };
 
-const config = JSON.parse(fs.readFileSync(".config.json"));
+function readConfigIfExists(filePath) {
+    if (fs.existsSync(filePath)) {
+        return JSON.parse(fs.readFileSync(filePath));
+    } else {
+        return [];
+    }
+}
+
+const config = readConfigIfExists(".config.json");
 
 config.push(configObject);
 
 fs.writeFileSync(".config.json", JSON.stringify(config, null, 2));
 
-const newEnv = `TWITCH_CLIENT_ID=${process.env.TWITCH_CLIENT_ID}\nTWITCH_CLIENT_SECRET=${process.env.TWITCH_CLIENT_SECRET}`;
+const newEnv = `TWITCH_CLIENT_ID=${process.env.TWITCH_CLIENT_ID ?? "[0-9a-z]"}\nTWITCH_CLIENT_SECRET=${process.env.TWITCH_CLIENT_SECRET ?? "[0-9a-z]"}`;
 
 fs.writeFileSync(".env", newEnv);
