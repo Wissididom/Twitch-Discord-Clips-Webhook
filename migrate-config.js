@@ -10,19 +10,6 @@ function readConfigIfExists(filePath) {
   }
 }
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
-
-rl.question(
-  "Please enter the cron expression you want to have it run as:\n",
-  (cron) => {
-    rl.close();
-    runMigration(cron);
-  },
-);
-
 function runMigration(cron) {
   const configObject = {
     twitchLogin: process.env.BROADCASTER_LOGIN,
@@ -46,3 +33,16 @@ function runMigration(cron) {
   fs.writeFileSync(".env", newEnv);
   console.log(newEnv);
 }
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+
+rl.question(
+  "Please enter the cron expression you want to have it run as:\n",
+  (cron) => {
+    rl.close();
+    runMigration(cron);
+  },
+);
