@@ -3,33 +3,36 @@ import fs from "node:fs";
 import readline from "node:readline";
 
 const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
+  input: process.stdin,
+  output: process.stdout,
 });
 
 let cron = null;
 
-rl.question('Please enter the cron expression you want to have it run as:', cronExpression => {
+rl.question(
+  "Please enter the cron expression you want to have it run as:",
+  (cronExpression) => {
     cron = cronExpression;
     rl.close();
-});
+  },
+);
 
 const configObject = {
-    twitchLogin: process.env.BROADCASTER_LOGIN,
-    cron: cron,
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    discordWebhook: process.env.DISCORD_WEBHOOK_URL,
-    pollingInterval: process.env.POLLING_INTERVAL,
-    suppressUntitled: process.env.SUPPRESS_UNTITLED.toLowerCase() == "true",
-    showCreatedDate: process.env.SHOW_CREATED_DATE.toLowerCase() == "true",
+  twitchLogin: process.env.BROADCASTER_LOGIN,
+  cron: cron,
+  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  discordWebhook: process.env.DISCORD_WEBHOOK_URL,
+  pollingInterval: process.env.POLLING_INTERVAL,
+  suppressUntitled: process.env.SUPPRESS_UNTITLED.toLowerCase() == "true",
+  showCreatedDate: process.env.SHOW_CREATED_DATE.toLowerCase() == "true",
 };
 
 function readConfigIfExists(filePath) {
-    if (fs.existsSync(filePath)) {
-        return JSON.parse(fs.readFileSync(filePath));
-    } else {
-        return [];
-    }
+  if (fs.existsSync(filePath)) {
+    return JSON.parse(fs.readFileSync(filePath));
+  } else {
+    return [];
+  }
 }
 
 const config = readConfigIfExists(".config.json");
