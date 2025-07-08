@@ -225,8 +225,7 @@ export async function handleStreamer(
             pollingInterval.length - 1,
           )}`,
         );
-        process.exit(78); // EX_CONFIG
-        break;
+        return;
     }
     const clips = await getClips(tokens, broadcasterId, date);
     console.log(
