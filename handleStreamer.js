@@ -1,5 +1,175 @@
 import { WebhookClient, EmbedBuilder } from "discord.js";
 
+const API_BASE_URL = "https://api.twitch.tv/helix";
+
+async function getTokens() {
+  return await fetch(
+    `https://id.twitch.tv/oauth2/token?client_id=${process.env.TWITCH_CLIENT_ID}&client_secret=${process.env.TWITCH_CLIENT_SECRET}&grant_type=client_credentials`,
+    {
+      method: "POST",
+    },
+  ).then(async (res) => {
+    let result = await res.json();
+    result.expires_at = new Date(Date.now() + result.expires_in * 1000);
+    return result;
+  });
+}
+
+async function fetchTwitch(endpoint, tokens) {
+  const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+    headers: {
+      "Client-ID": process.env.TWITCH_CLIENT_ID,
+      Authorization: `Bearer ${token.access_token}`,
+    },
+  });
+  return res.json();
+}
+
+async function fetchUsersByLogins(tokens, logins) {
+  if (logins.length > 100) throw new Error("Too many users");
+  const query = `?login=${logins.join("&login=")}`;
+  const data = await fetchTwitch(`/users${query}`, tokens);
+  return data.data.map(({ id, title }) => ({ id, title }));
+}
+
+async function fetchUsersByIds(tokens, ids) {
+  if (ids.length > 100) throw new Error("Too many users");
+  const query = `?id=${ids.join("&id=")}`;
+  const data = await fetchTwitch(`/users${query}`, tokens);
+  return data.data.map(({ id, title }) => ({ id, title }));
+}
+
+async function fetchVideosByIds(tokens, ids) {
+  if (ids.length > 100) throw new Error("Too many videos");
+  const query = `?id=${ids.join("&id=")}`;
+  const data = await fetchTwitch(`/videos${query}`, tokens);
+  return data.data.map(({ id, title }) => ({ id, title }));
+}
+
+async function fetchGamesByIds(tokens, ids) {
+  if (ids.length > 100) throw new Error("Too many games");
+  const query = `?id=${ids.join("&id=")}`;
+  const data = await fetchTwitch(`/games${query}`, tokens);
+  return data.data.map(({ id, name, box_art_url }) => ({
+    id,
+    name,
+    boxart: box_art_url.replace("{width}", "600").replace("{height}", "800"),
+  }));
+}
+
+async function fetchClips(tokens, broadcasterId, date) {
+  const data = await fetchTwitch(
+    `/clips?broadcaster_id=${broadcasterId}&first=100&started_at=${date.toISOString()}`,
+    tokens,
+  );
+  return data.data;
+}
+
+function createClipEmbed(clip, gameNames, videoTitles) {
+  const game = gameNames.find((x) => x.id === clip.game_id);
+  const video = videoTitles.find((x) => x.id === clip.videos_id);
+
+  return new EmbedBuilder()
+    .setTitle(clip.title.trim())
+    .setURL(clip.url)
+    .addFields(
+      { name: "Game", value: game?.name ?? "N/A", inline: true },
+      { name: "Streamer", value: clip.broadcaster_name ?? "N/A", inline: true },
+      { name: "Clipper", value: clip.creator_name ?? "N/A", inline: true },
+      {
+        name: "VOD",
+        value: clip.video_id
+          ? `[${clip.video_id}](https://www.twitch.tv/videos/${clip.video_id})`
+          : "N/A",
+        inline: true,
+      },
+      { name: "Language", value: clip.language ?? "N/A", inline: true },
+      {
+        name: "Views",
+        value: clip.view_count?.toString() ?? "N/A",
+        inline: true,
+      },
+      {
+        name: "Created At",
+        value: clip.created_at
+          ? `<t:${Math.floor(new Date(clip.created_at).getTime() / 1000)}:F>`
+          : "N/A",
+        inline: true,
+      },
+      {
+        name: "Duration",
+        value: `${clip.duration} seconds` ?? "N/A",
+        inline: true,
+      },
+      {
+        name: "VOD Offset",
+        value: clip.vod_offset ? `${clip.vod_offset} seconds` : "N/A",
+        inline: true,
+      },
+      {
+        name: "Featured",
+        value:
+          typeof clip.is_featured === "boolean"
+            ? clip.is_featured.toString()
+            : "N/A",
+        inline: true,
+      },
+    )
+    .setThumbnail(game?.boxart)
+    .setImage(clip.thumbnail_url);
+}
+
+async function processClips(
+  tokens,
+  clips,
+  webhookClient,
+  options,
+  messageMap = {},
+  postedIds = [],
+) {
+  const { suppressUntitled, showCreatedDate } = options;
+  if (clips.length === 0) return; // No clips to post
+  const creatorIds = [...new Set(clips.map((c) => c.creator_id))]; // Make sure there are no duplicate entries
+  const videoIds = [...new Set(clips.map((c) => c.video_id).filter(Boolean))]; // Make sure there are no duplicate entries
+  const gameIds = [...new Set(clips.map((c) => c.game_id).filter(Boolean))]; // Make sure there are no duplicate entries
+  const [users, videos, games] = await Promise.all([
+    fetchUsersByIds(tokens, creatorIds),
+    fetchVideosByIds(tokens, videoIds),
+    fetchGamesByIds(tokens, gameIds),
+  ]);
+  for (const clip of clips) {
+    if (suppressUntitled) {
+      const video = videos.find((v) => v.id === clip.video_id);
+      if (video && video.title === clip.title) continue;
+    }
+    let content = `\`\`${clip.title.trim()}\`\`: ${clip.url}`;
+    if (showCreatedDate) {
+      const time = Math.floor(new Date(clip.created_at).getTime() / 1000);
+      content += ` (Created at: <t:${time}:F> - <t:${time}:R>)`;
+    }
+    if (postedIds.includes(clip.id)) {
+      // Don't post clips that were already posted. Edit them, because the Clip will get returned even if no title was set yet.
+      const existing = messageMap[clip.id];
+      if (existing?.content !== content) {
+        const edited = await webhookClient.editMessage(existing.id, {
+          content,
+        });
+        messageMap[clip.id] = edited;
+      }
+      continue;
+    }
+    const msg = await webhookClient.send({
+      username: clip.creator_name,
+      avatarURL: users.find((u) => u.id === clip.creator_id)?.profileImageUrl,
+      content,
+      embeds: [createClipEmbed(clip, games, videos)],
+    });
+    postedIds.push(clip.id);
+    messageMap[clip.id] = msg;
+  }
+  return { messageMap, postedIds };
+}
+
 export async function handleStreamer(
   broadcasterLogin,
   webhookUrl,
@@ -7,267 +177,92 @@ export async function handleStreamer(
   suppressUntitled,
   showCreatedDate,
 ) {
-  const tokens = await fetch(
-    `https://id.twitch.tv/oauth2/token?client_id=${process.env.TWITCH_CLIENT_ID}&client_secret=${process.env.TWITCH_CLIENT_SECRET}&grant_type=client_credentials`,
-    {
-      method: "POST",
-    },
-  ).then((res) => res.json());
-  const broadcaster = await fetch(
-    `https://api.twitch.tv/helix/users?login=${broadcasterLogin}`,
-    {
-      headers: {
-        "Client-ID": process.env.TWITCH_CLIENT_ID,
-        Authorization: `Bearer ${tokens.access_token}`,
-      },
-    },
-  ).then((res) => res.json());
-  if (!broadcaster.data) {
+  const webhookClient = new WebhookClient({ url: webhookUrl });
+  const tokens = await getTokens();
+  const broadcaster = fetchUsersByLogins(tokens, [broadcasterLogin]);
+  const broadcaster = await getUsers(tokens, `?login=${broadcasterLogin}`);
+  if (!broadcaster) {
     console.error(
       `Error retrieving broadcaster info. Response from Twitch: ${JSON.stringify(
         broadcaster,
       )}`,
     );
-    //process.exit(77); // EX_NOPERM
-    process.exit(78); // EX_CONFIG
+    return;
   }
-  if (broadcaster.data.length < 1) {
+  if (broadcaster.length < 1) {
     console.log(`Broadcaster ${broadcasterLogin} not found!`);
     return;
   }
-  console.log("Test:" + JSON.stringify(broadcaster.data));
-  const broadcasterId = broadcaster.data[0].id;
-  const broadcasterDisplayName = broadcaster.data[0].display_name;
-  const pollingIntervalNumber = parseInt(
-    pollingInterval.substring(0, pollingInterval.length - 1),
-  );
-  let date = new Date();
-  switch (pollingInterval.substring(pollingInterval.length - 1)) {
-    case "d": // days
-      date.setDate(date.getDate() - pollingIntervalNumber);
-      break;
-    case "M": // months
-      date.setMonth(date.getMonth() - pollingIntervalNumber);
-      break;
-    case "y": // years
-      date.setFullYear(date.getFullYear() - pollingIntervalNumber);
-      break;
-    case "h": // hours
-      date.setHours(date.getHours() - pollingIntervalNumber);
-      break;
-    case "m": // minutes
-      date.setMinutes(date.getMinutes() - pollingIntervalNumber);
-      break;
-    case "s": // seconds
-      date.setSeconds(date.getSeconds() - pollingIntervalNumber);
-      break;
-    default: // else
-      console.error(
-        `Only d (days), M (months), y (years), h (hours), m (minutes) and s (seconds) are allowed! You used ${pollingInterval.substring(
-          pollingInterval.length - 1,
-        )}`,
-      );
-      process.exit(78); // EX_CONFIG
-      break;
-  }
-  const clips = (
-    await fetch(
-      `https://api.twitch.tv/helix/clips?broadcaster_id=${broadcasterId}&first=100&started_at=${date.toISOString()}`,
-      {
-        headers: {
-          "Client-ID": process.env.TWITCH_CLIENT_ID,
-          Authorization: `Bearer ${tokens.access_token}`,
-        },
-      },
-    ).then((res) => res.json())
-  ).data;
-  console.log(
-    `${broadcasterDisplayName} (${broadcasterLogin}): ${JSON.stringify(clips, null, 2)}`,
-  );
-  let creatorIds = [];
-  let videoIds = [];
-  let gameIds = [];
-  if (clips.length < 1) return; // No clips to post
-  for (let i = 0; i < clips.length; i++) {
-    creatorIds.push(clips[i].creator_id);
-    if (clips[i].video_id.length > 0) {
-      videoIds.push(clips[i].video_id);
+  const broadcasterId = broadcaster[0].id;
+  const broadcasterDisplayName = broadcaster[0].display_name;
+  if (pollingInterval) {
+    const pollingIntervalNumber = parseInt(
+      pollingInterval.substring(0, pollingInterval.length - 1),
+    );
+    let date = new Date();
+    switch (pollingInterval.substring(pollingInterval.length - 1)) {
+      case "d":
+        date.setDate(date.getDate() - pollingIntervalNumber);
+        break;
+      case "M":
+        date.setMonth(date.getMonth() - pollingIntervalNumber);
+        break;
+      case "y":
+        date.setFullYear(date.getFullYear() - pollingIntervalNumber);
+        break;
+      case "h":
+        date.setHours(date.getHours() - pollingIntervalNumber);
+        break;
+      case "m":
+        date.setMinutes(date.getMinutes() - pollingIntervalNumber);
+        break;
+      case "s":
+        date.setSeconds(date.getSeconds() - pollingIntervalNumber);
+        break;
+      default:
+        console.error(
+          `Only d (days), M (months), y (years), h (hours), m (minutes) and s (seconds) are allowed! You used ${pollingInterval.substring(
+            pollingInterval.length - 1,
+          )}`,
+        );
+        process.exit(78); // EX_CONFIG
+        break;
     }
-    if (clips[i].game_id.length > 0) {
-      gameIds.push(clips[i].game_id);
-    }
-  }
-  creatorIds = [...new Set(creatorIds)]; // Remove duplicate entries
-  videoIds = [...new Set(videoIds)]; // Remove duplicate entries
-  gameIds = [...new Set(gameIds)]; // Remove duplicate entries
-  let usersQuery;
-  let profileImageUrls = [];
-  if (creatorIds.length > 0 && creatorIds.length <= 100) {
-    usersQuery = "?id=" + creatorIds.join("&id=");
-    profileImageUrls = (
-      await fetch(`https://api.twitch.tv/helix/users${usersQuery}`, {
-        headers: {
-          "Client-ID": process.env.TWITCH_CLIENT_ID,
-          Authorization: `Bearer ${tokens.access_token}`,
-        },
-      }).then((res) => res.json())
-    ).data.map((x) => {
-      return {
-        id: x.id,
-        profileImageUrl: x.profile_image_url,
-      };
+    const clips = await getClips(tokens, broadcasterId, date);
+    console.log(
+      `${broadcasterDisplayName} (${broadcasterLogin}): ${JSON.stringify(clips, null, 2)}`,
+    );
+    await processClips(tokens, clips, webhookClient, {
+      suppressUntitled,
+      showCreatedDate,
     });
-  } else if (creatorIds.length > 100) {
-    console.error("More than 100 users to look up");
-  }
-  let videosQuery;
-  let videoTitles = [];
-  if (videoIds.length > 0 && videoIds.length <= 100) {
-    videosQuery = "?id=" + videoIds.join("&id=");
-    videoTitles = (
-      await fetch(`https://api.twitch.tv/helix/videos${videosQuery}`, {
-        headers: {
-          "Client-ID": process.env.TWITCH_CLIENT_ID,
-          Authorization: `Bearer ${tokens.access_token}`,
-        },
-      })
-        .then((res) => res.json())
-        .catch((err) => console.error(err))
-    ).data.map((x) => {
-      return {
-        id: x.id,
-        title: x.title,
-      };
-    });
-  } else if (videoIds.length > 100) {
-    console.error("More than 100 videos to look up");
-  }
-  let gamesQuery;
-  let gameNames = [];
-  if (gameIds.length > 0 && gameIds.length <= 100) {
-    gamesQuery = "?id=" + gameIds.join("&id=");
-    gameNames = (
-      await fetch(`https://api.twitch.tv/helix/games${gamesQuery}`, {
-        headers: {
-          "Client-ID": process.env.TWITCH_CLIENT_ID,
-          Authorization: `Bearer ${tokens.access_token}`,
-        },
-      })
-        .then((res) => res.json())
-        .catch((err) => console.error(err))
-    ).data.map((x) => {
-      return {
-        id: x.id,
-        name: x.name,
-        boxart: x.box_art_url
-          .replace("{width}", "600")
-          .replace("{height}", "800"),
-      };
-    });
-  } else if (gameIds.length > 100) {
-    console.error("More than 100 games to look up");
-  }
-  const webhookClient = new WebhookClient({
-    url: webhookUrl,
-  });
-  for (let i = 0; i < clips.length; i++) {
-    if (suppressUntitled) {
-      let video = videoTitles.find((x) => x.id == clips[i].video_id);
-      if (video && video.title == clips[i].title) continue;
-    }
-    let content = `\`\`${clips[i].title.trim()}\`\`: ${clips[i].url}`;
-    if (showCreatedDate) {
-      let time = new Date(clips[i].created_at).getTime() / 1000;
-      content += ` (Created at: <t:${time}:F> - <t:${time}:R>)`;
-    }
-    await webhookClient
-      .send({
-        username: clips[i].creator_name.trim(),
-        avatarURL: profileImageUrls.find((x) => x.id == clips[i].creator_id)
-          ?.profileImageUrl,
-        content,
-        embeds: [
-          new EmbedBuilder()
-            .setTitle(clips[i].title.trim())
-            .setURL(clips[i].url)
-            .addFields(
-              {
-                name: "Game",
-                value: clips[i].game_id
-                  ? gameNames.find((x) => x.id == clips[i].game_id)?.name
-                  : "N/A",
-                inline: true,
-              },
-              {
-                name: "Streamer",
-                value: clips[i].broadcaster_name
-                  ? clips[i].broadcaster_name
-                  : "N/A",
-                inline: true,
-              },
-              {
-                name: "Clipper",
-                value: clips[i].creator_name ? clips[i].creator_name : "N/A",
-                inline: true,
-              },
-              {
-                name: "VOD",
-                value: clips[i].video_id
-                  ? `[${clips[i].video_id}](https://www.twitch.tv/videos/${clips[i].video_id})`
-                  : "N/A",
-                inline: true,
-              },
-              {
-                name: "Language",
-                value: clips[i].language ? clips[i].language : "N/A",
-                inline: true,
-              },
-              {
-                name: "Views",
-                value: clips[i].view_count
-                  ? clips[i].view_count.toString()
-                  : "N/A",
-                inline: true,
-              },
-              {
-                name: "Created At",
-                value: clips[i].created_at
-                  ? `<t:${new Date(clips[i].created_at).getTime() / 1000}:F>`
-                  : "N/A",
-                inline: true,
-              },
-              {
-                name: "Duration",
-                value: clips[i].duration
-                  ? `${clips[i].duration} seconds`
-                  : "N/A",
-                inline: true,
-              },
-              {
-                name: "VOD Offset",
-                value: clips[i].vod_offset
-                  ? `${clips[i].vod_offset} seconds`
-                  : "N/A",
-                inline: true,
-              },
-              {
-                name: "Featured",
-                value:
-                  clips[i].is_featured === false ||
-                  clips[i].is_featured === true
-                    ? clips[i].is_featured.toString()
-                    : "N/A",
-                inline: true,
-              },
-            )
-            .setThumbnail(
-              clips[i].game_id
-                ? gameNames.find((x) => x.id == clips[i].game_id)?.boxart
-                : undefined,
-            )
-            .setImage(clips[i].thumbnail_url),
-        ],
-      })
-      .catch((err) => console.error);
+  } else {
+    let messageMap = {};
+    let postedIds = [];
+    console.log(
+      "Running setInterval - Clips should now be checked every 5 minutes",
+    );
+    setInterval(async () => {
+      try {
+        if (tokens.expires_at < new Date()) token = await getTokens();
+        let date = new Date(Math.floor(Date.now() / 1000) * 1000 - 5 * 60000);
+        let clips = await getClips(tokens, broadcasterId, date);
+        console.log(`${date.toISOString()} - ${JSON.stringify(clips)}`);
+        ({ messageMap, postedIds } = await processClips(
+          tokens,
+          clips,
+          webhookClient,
+          {
+            suppressUntitled,
+            showCreatedDate,
+          },
+          messageMap,
+          postedIds,
+        ));
+      } catch (err) {
+        // console.log(err.stack); // Don't exit on unhandled errors! Just print trace!
+        console.trace(err); // Don't exit on unhandled errors! Just print trace!
+      }
+    }, 5 * 60000);
   }
 }
