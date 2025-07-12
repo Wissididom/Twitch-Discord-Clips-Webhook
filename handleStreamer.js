@@ -2,8 +2,22 @@ import { WebhookClient, EmbedBuilder } from "discord.js";
 
 const API_BASE_URL = "https://api.twitch.tv/helix";
 
+let tokens = {
+  access_token: null,
+  refresh_token: null,
+  expires_in: null,
+  expires_at: null,
+};
+
 async function getTokens() {
-  return await fetch(
+  const bufferMs = 60 * 1000; // 1 minute buffer
+  const isValid =
+    tokens.expires_at &&
+    new Date().getTime() < tokens.expires_at.getTime() - bufferMs;
+  if (isValid) {
+    return tokens;
+  }
+  tokens = await fetch(
     `https://id.twitch.tv/oauth2/token?client_id=${process.env.TWITCH_CLIENT_ID}&client_secret=${process.env.TWITCH_CLIENT_SECRET}&grant_type=client_credentials`,
     {
       method: "POST",
@@ -13,6 +27,7 @@ async function getTokens() {
     result.expires_at = new Date(Date.now() + result.expires_in * 1000);
     return result;
   });
+  return tokens;
 }
 
 async function fetchTwitch(endpoint, tokens) {
@@ -135,8 +150,8 @@ async function processClips(
   messageMap = {},
   postedIds = [],
 ) {
+  if (clips.length === 0) return { messageMap, postedIds }; // No clips to post
   const { suppressUntitled, showCreatedDate } = options;
-  if (clips.length === 0) return; // No clips to post
   const creatorIds = [...new Set(clips.map((c) => c.creator_id))]; // Make sure there are no duplicate entries
   const videoIds = [...new Set(clips.map((c) => c.video_id).filter(Boolean))]; // Make sure there are no duplicate entries
   const gameIds = [...new Set(clips.map((c) => c.game_id).filter(Boolean))]; // Make sure there are no duplicate entries
@@ -186,8 +201,8 @@ export async function handleStreamer(
   showCreatedDate,
   useService = false,
 ) {
-  const webhookClient = new WebhookClient({ url: webhookUrl });
   const tokens = await getTokens();
+  const webhookClient = new WebhookClient({ url: webhookUrl });
   const broadcaster = await fetchUsersByLogins(tokens, [broadcasterLogin]);
   if (!broadcaster) {
     console.error(
@@ -207,14 +222,17 @@ export async function handleStreamer(
     let messageMap = {};
     let postedIds = [];
     console.log(
-      "Running setInterval - Clips should now be checked every 5 minutes",
+      `Running setInterval for ${broadcasterDisplayName} (${broadcasterLogin}) - Clips should now be checked every 5 minutes`,
     );
     setInterval(async () => {
       try {
+        const tokens = await getTokens();
         if (tokens.expires_at < new Date()) token = await getTokens();
         let date = new Date(Math.floor(Date.now() / 1000) * 1000 - 5 * 60000);
         let clips = await fetchClips(tokens, broadcasterId, date);
-        console.log(`${date.toISOString()} - ${JSON.stringify(clips)}`);
+        console.log(
+          `${new Date().toISOString()} - ${broadcasterDisplayName} (${broadcasterLogin}) - ${JSON.stringify(clips, null, 2)}`,
+        );
         ({ messageMap, postedIds } = await processClips(
           tokens,
           clips,
@@ -263,9 +281,10 @@ export async function handleStreamer(
         );
         return;
     }
+    const tokens = await getTokens();
     const clips = await fetchClips(tokens, broadcasterId, date);
     console.log(
-      `${broadcasterDisplayName} (${broadcasterLogin}): ${JSON.stringify(clips, null, 2)}`,
+      `${new Date().toISOString()} - ${broadcasterDisplayName} (${broadcasterLogin}) - ${JSON.stringify(clips, null, 2)}`,
     );
     await processClips(tokens, clips, webhookClient, {
       suppressUntitled,
