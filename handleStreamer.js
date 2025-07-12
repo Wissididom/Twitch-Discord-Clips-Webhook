@@ -184,6 +184,7 @@ export async function handleStreamer(
   pollingInterval,
   suppressUntitled,
   showCreatedDate,
+  useService = false,
 ) {
   const webhookClient = new WebhookClient({ url: webhookUrl });
   const tokens = await getTokens();
@@ -202,7 +203,35 @@ export async function handleStreamer(
   }
   const broadcasterId = broadcaster[0].id;
   const broadcasterDisplayName = broadcaster[0].display_name;
-  if (pollingInterval) {
+  if (useService) {
+    let messageMap = {};
+    let postedIds = [];
+    console.log(
+      "Running setInterval - Clips should now be checked every 5 minutes",
+    );
+    setInterval(async () => {
+      try {
+        if (tokens.expires_at < new Date()) token = await getTokens();
+        let date = new Date(Math.floor(Date.now() / 1000) * 1000 - 5 * 60000);
+        let clips = await fetchClips(tokens, broadcasterId, date);
+        console.log(`${date.toISOString()} - ${JSON.stringify(clips)}`);
+        ({ messageMap, postedIds } = await processClips(
+          tokens,
+          clips,
+          webhookClient,
+          {
+            suppressUntitled,
+            showCreatedDate,
+          },
+          messageMap,
+          postedIds,
+        ));
+      } catch (err) {
+        // console.log(err.stack); // Don't exit on unhandled errors! Just print trace!
+        console.trace(err); // Don't exit on unhandled errors! Just print trace!
+      }
+    }, 5 * 60000);
+  } else {
     const pollingIntervalNumber = parseInt(
       pollingInterval.substring(0, pollingInterval.length - 1),
     );
@@ -242,33 +271,5 @@ export async function handleStreamer(
       suppressUntitled,
       showCreatedDate,
     });
-  } else {
-    let messageMap = {};
-    let postedIds = [];
-    console.log(
-      "Running setInterval - Clips should now be checked every 5 minutes",
-    );
-    setInterval(async () => {
-      try {
-        if (tokens.expires_at < new Date()) token = await getTokens();
-        let date = new Date(Math.floor(Date.now() / 1000) * 1000 - 5 * 60000);
-        let clips = await fetchClips(tokens, broadcasterId, date);
-        console.log(`${date.toISOString()} - ${JSON.stringify(clips)}`);
-        ({ messageMap, postedIds } = await processClips(
-          tokens,
-          clips,
-          webhookClient,
-          {
-            suppressUntitled,
-            showCreatedDate,
-          },
-          messageMap,
-          postedIds,
-        ));
-      } catch (err) {
-        // console.log(err.stack); // Don't exit on unhandled errors! Just print trace!
-        console.trace(err); // Don't exit on unhandled errors! Just print trace!
-      }
-    }, 5 * 60000);
   }
 }

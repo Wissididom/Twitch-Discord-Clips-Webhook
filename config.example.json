@@ -7,5 +7,14 @@
     "pollingInterval": "1d",
     "suppressUntitled": true,
     "showCreatedDate": false
+  },
+  {
+    "twitchLogin": "wissididom",
+    "cron": null,
+    "timezone": "Europe/Berlin",
+    "discordWebhook": "https://discord.com/api/webhooks/<webhookId>/<webhookToken>",
+    "pollingInterval": "1d",
+    "suppressUntitled": true,
+    "showCreatedDate": false
   }
 ]
