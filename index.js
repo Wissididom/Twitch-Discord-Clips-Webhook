@@ -13,20 +13,32 @@ for (let streamer of config) {
         return value;
       }),
   );
-  cron.schedule(
-    streamer.cron,
-    async () => {
-      await handleStreamer(
-        streamer.twitchLogin,
-        streamer.discordWebhook,
-        streamer.pollingInterval ?? "1d",
-        streamer.suppressUntitled ?? false,
-        streamer.showCreatedDate ?? true,
-      );
-    },
-    {
-      scheduled: true,
-      timezone: streamer.timezone,
-    },
-  );
+  if (streamer.cron) {
+    cron.schedule(
+      streamer.cron,
+      async () => {
+        await handleStreamer(
+          streamer.twitchLogin,
+          streamer.discordWebhook,
+          streamer.pollingInterval ?? "1d",
+          streamer.suppressUntitled ?? false,
+          streamer.showCreatedDate ?? true,
+          false,
+        );
+      },
+      {
+        scheduled: true,
+        timezone: streamer.timezone,
+      },
+    );
+  } else {
+    handleStreamer(
+      streamer.twitchLogin,
+      streamer.discordWebhook,
+      streamer.pollingInterval ?? "1d",
+      streamer.suppressUntitled ?? false,
+      streamer.showCreatedDate ?? true,
+      true,
+    );
+  }
 }
