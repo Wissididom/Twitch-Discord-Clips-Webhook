@@ -29,14 +29,22 @@ async function fetchUsersByLogins(tokens, logins) {
   if (logins.length > 100) throw new Error("Too many users");
   const query = `?login=${logins.join("&login=")}`;
   const data = await fetchTwitch(`/users${query}`, tokens);
-  return data.data.map(({ id, login, display_name }) => ({ id, login, display_name }));
+  return data.data.map(({ id, login, display_name }) => ({
+    id,
+    login,
+    display_name,
+  }));
 }
 
 async function fetchUsersByIds(tokens, ids) {
   if (ids.length > 100) throw new Error("Too many users");
   const query = `?id=${ids.join("&id=")}`;
   const data = await fetchTwitch(`/users${query}`, tokens);
-  return data.data.map(({ id, login, display_name }) => ({ id, login, display_name }));
+  return data.data.map(({ id, login, display_name }) => ({
+    id,
+    login,
+    display_name,
+  }));
 }
 
 async function fetchVideosByIds(tokens, ids) {
