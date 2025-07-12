@@ -19,7 +19,7 @@ async function fetchTwitch(endpoint, tokens) {
   const res = await fetch(`${API_BASE_URL}${endpoint}`, {
     headers: {
       "Client-ID": process.env.TWITCH_CLIENT_ID,
-      Authorization: `Bearer ${token.access_token}`,
+      Authorization: `Bearer ${tokens.access_token}`,
     },
   });
   return res.json();
@@ -29,14 +29,14 @@ async function fetchUsersByLogins(tokens, logins) {
   if (logins.length > 100) throw new Error("Too many users");
   const query = `?login=${logins.join("&login=")}`;
   const data = await fetchTwitch(`/users${query}`, tokens);
-  return data.data.map(({ id, title }) => ({ id, title }));
+  return data.data.map(({ id, login, display_name }) => ({ id, login, display_name }));
 }
 
 async function fetchUsersByIds(tokens, ids) {
   if (ids.length > 100) throw new Error("Too many users");
   const query = `?id=${ids.join("&id=")}`;
   const data = await fetchTwitch(`/users${query}`, tokens);
-  return data.data.map(({ id, title }) => ({ id, title }));
+  return data.data.map(({ id, login, display_name }) => ({ id, login, display_name }));
 }
 
 async function fetchVideosByIds(tokens, ids) {
@@ -179,8 +179,7 @@ export async function handleStreamer(
 ) {
   const webhookClient = new WebhookClient({ url: webhookUrl });
   const tokens = await getTokens();
-  const broadcaster = fetchUsersByLogins(tokens, [broadcasterLogin]);
-  const broadcaster = await getUsers(tokens, `?login=${broadcasterLogin}`);
+  const broadcaster = await fetchUsersByLogins(tokens, [broadcasterLogin]);
   if (!broadcaster) {
     console.error(
       `Error retrieving broadcaster info. Response from Twitch: ${JSON.stringify(
@@ -227,7 +226,7 @@ export async function handleStreamer(
         );
         return;
     }
-    const clips = await getClips(tokens, broadcasterId, date);
+    const clips = await fetchClips(tokens, broadcasterId, date);
     console.log(
       `${broadcasterDisplayName} (${broadcasterLogin}): ${JSON.stringify(clips, null, 2)}`,
     );
@@ -245,7 +244,7 @@ export async function handleStreamer(
       try {
         if (tokens.expires_at < new Date()) token = await getTokens();
         let date = new Date(Math.floor(Date.now() / 1000) * 1000 - 5 * 60000);
-        let clips = await getClips(tokens, broadcasterId, date);
+        let clips = await fetchClips(tokens, broadcasterId, date);
         console.log(`${date.toISOString()} - ${JSON.stringify(clips)}`);
         ({ messageMap, postedIds } = await processClips(
           tokens,
