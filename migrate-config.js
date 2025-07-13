@@ -43,6 +43,10 @@ rl.question(
   "Please enter the cron expression you want to have it run as:\n",
   (cron) => {
     rl.close();
-    runMigration(cron);
+    if (cron == "null") {
+      runMigration(null);
+    } else {
+      runMigration(cron);
+    }
   },
 );
