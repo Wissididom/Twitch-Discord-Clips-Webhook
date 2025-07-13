@@ -42,6 +42,7 @@ async function fetchTwitch(endpoint, tokens) {
 
 async function fetchUsersByLogins(tokens, logins) {
   if (logins.length > 100) throw new Error("Too many users");
+  if (logins.length < 1) return [];
   const query = `?login=${logins.join("&login=")}`;
   const data = await fetchTwitch(`/users${query}`, tokens);
   return data.data.map(({ id, login, display_name }) => ({
@@ -53,6 +54,7 @@ async function fetchUsersByLogins(tokens, logins) {
 
 async function fetchUsersByIds(tokens, ids) {
   if (ids.length > 100) throw new Error("Too many users");
+  if (ids.length < 1) return [];
   const query = `?id=${ids.join("&id=")}`;
   const data = await fetchTwitch(`/users${query}`, tokens);
   return data.data.map(({ id, login, display_name }) => ({
@@ -64,6 +66,7 @@ async function fetchUsersByIds(tokens, ids) {
 
 async function fetchVideosByIds(tokens, ids) {
   if (ids.length > 100) throw new Error("Too many videos");
+  if (ids.length < 1) return [];
   const query = `?id=${ids.join("&id=")}`;
   const data = await fetchTwitch(`/videos${query}`, tokens);
   return data.data.map(({ id, title }) => ({ id, title }));
@@ -71,6 +74,7 @@ async function fetchVideosByIds(tokens, ids) {
 
 async function fetchGamesByIds(tokens, ids) {
   if (ids.length > 100) throw new Error("Too many games");
+  if (ids.length < 1) return [];
   const query = `?id=${ids.join("&id=")}`;
   const data = await fetchTwitch(`/games${query}`, tokens);
   return data.data.map(({ id, name, box_art_url }) => ({
