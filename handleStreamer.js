@@ -92,9 +92,9 @@ async function fetchClips(tokens, broadcasterId, date) {
   return data.data;
 }
 
-function createClipEmbed(clip, gameNames, videoTitles) {
-  const game = gameNames.find((x) => x.id === clip.game_id);
-  const video = videoTitles.find((x) => x.id === clip.videos_id);
+function createClipEmbed(clip, games, videos) {
+  const game = games.find((x) => x.id === clip.game_id);
+  const video = videos.find((x) => x.id === clip.videos_id);
 
   return new EmbedBuilder()
     .setTitle(clip.title.trim())
@@ -176,11 +176,87 @@ async function processClips(
     }
     if (postedIds.includes(clip.id)) {
       // Don't post clips that were already posted. Edit them, because the Clip will get returned even if no title was set yet.
+      const game = games.find((x) => x.id === clip.game_id);
+      const video = videos.find((x) => x.id === clip.videos_id);
       const existing = messageMap[clip.id];
-      if (existing?.content !== content) {
-        const edited = await webhookClient.editMessage(existing.id, {
-          content,
+      const embed = existing?.embeds[0];
+      let anythingChanged = existing?.content !== content;
+      let embedChanged = false;
+      if (embed) {
+        const newEmbed = new EmbedBuilder();
+        const fieldUpdates = {
+          title: {
+            current: embed.title,
+            new: clip.title?.trim(),
+            setter: (val) => newEmbed.setTitle(val),
+          },
+          url: {
+            current: embed.url,
+            new: clip.url,
+            setter: (val) => newEmbed.setURL(val),
+          },
+          thumbnail: {
+            current: embed.thumbnail,
+            new: game?.boxart,
+            setter: (val) => newEmbed.setThumbnail(val),
+          },
+          image: {
+            current: embed.image,
+            new: clip.thumbnail_url,
+            setter: (val) => newEmbed.setImage(val),
+          },
+        };
+        for (const key in fieldUpdates) {
+          const { current, new: newVal, setter } = fieldUpdates[key];
+          if (newVal && current !== newVal) {
+            anythingChanged = true;
+            embedChanged = true;
+            setter(newVal);
+          }
+        }
+        const fieldReplacements = {
+          Game: game?.name,
+          Streamer: clip.broadcaster_name,
+          Clipper: clip.creator_name,
+          VOD: clip.video_id
+            ? `[${clip.video_id}](https://www.twitch.tv/videos/${clip.video_id})`
+            : undefined,
+          Language: clip.language,
+          Views: clip.view_count?.toString(),
+          "Created At": clip.created_at
+            ? `<t:${Math.floor(new Date(clip.created_at).getTime() / 1000)}:F>`
+            : undefined,
+          Duration: clip.duration ? `${clip.duration} seconds` : undefined,
+          "VOD Offset": clip.vod_offset
+            ? `${clip.vod_offset} seconds`
+            : undefined,
+          Featured:
+            typeof clip.is_featured === "boolean"
+              ? clip.is_featured.toString()
+              : undefined,
+        };
+        embed.fields.forEach((field) => {
+          const newValue = fieldReplacements[field.name] ?? field.value;
+          if (field.value !== newValue) {
+            anythingChanged = true;
+            embedChanged = true;
+          }
+          newEmbed.addFields({
+            name: field.name,
+            value: newValue,
+            inline: true,
+          });
         });
+      }
+      if (anythingChanged) {
+        const editPayload = {
+          content,
+          ...(embedChanged ? { embeds: [embed] } : {}),
+        };
+        const edited = await webhookClient.editMessage(
+          existing.id,
+          editPayload,
+        );
         messageMap[clip.id] = edited;
       }
       continue;
