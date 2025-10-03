@@ -48,7 +48,7 @@ async function fetchUsersByLogins(tokens, logins) {
   return data.data.map(({ id, login, display_name, profile_image_url }) => ({
     id,
     login,
-    display_name,
+    displayName: display_name,
     profileImageUrl: profile_image_url,
   }));
 }
@@ -61,7 +61,7 @@ async function fetchUsersByIds(tokens, ids) {
   return data.data.map(({ id, login, display_name, profile_image_url }) => ({
     id,
     login,
-    display_name,
+    displayName: display_name,
     profileImageUrl: profile_image_url,
   }));
 }
@@ -299,7 +299,7 @@ export async function handleStreamer(
     return;
   }
   const broadcasterId = broadcaster[0].id;
-  const broadcasterDisplayName = broadcaster[0].display_name;
+  const broadcasterDisplayName = broadcaster[0].displayName;
   if (useService) {
     let messageMap = {};
     let postedIds = [];
