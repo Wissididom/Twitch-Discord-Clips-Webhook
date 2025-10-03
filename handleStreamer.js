@@ -45,10 +45,11 @@ async function fetchUsersByLogins(tokens, logins) {
   if (logins.length < 1) return [];
   const query = `?login=${logins.join("&login=")}`;
   const data = await fetchTwitch(`/users${query}`, tokens);
-  return data.data.map(({ id, login, display_name }) => ({
+  return data.data.map(({ id, login, display_name, profile_image_url }) => ({
     id,
     login,
     display_name,
+    profileImageUrl: profile_image_url,
   }));
 }
 
@@ -57,10 +58,11 @@ async function fetchUsersByIds(tokens, ids) {
   if (ids.length < 1) return [];
   const query = `?id=${ids.join("&id=")}`;
   const data = await fetchTwitch(`/users${query}`, tokens);
-  return data.data.map(({ id, login, display_name }) => ({
+  return data.data.map(({ id, login, display_name, profile_image_url }) => ({
     id,
     login,
     display_name,
+    profileImageUrl: profile_image_url,
   }));
 }
 
