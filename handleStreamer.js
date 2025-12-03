@@ -1,4 +1,4 @@
-import { WebhookClient, EmbedBuilder } from "discord.js";
+import { EmbedBuilder } from "discord.js";
 
 const API_BASE_URL = "https://api.twitch.tv/helix";
 
@@ -151,7 +151,7 @@ function createClipEmbed(clip, games, videos) {
 async function processClips(
   tokens,
   clips,
-  webhookClient,
+  webhookUrl,
   options,
   messageMap = {},
   postedIds = [],
@@ -255,20 +255,30 @@ async function processClips(
           content,
           ...(embedChanged ? { embeds: [embed] } : {}),
         };
-        const edited = await webhookClient.editMessage(
-          existing.id,
-          editPayload,
-        );
+        const edited = await fetch(`${webhookUrl}/messages/${existing.id}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(editPayload),
+        }).then((res) => res.json());
         messageMap[clip.id] = edited;
       }
       continue;
     }
-    const msg = await webhookClient.send({
-      username: clip.creator_name,
-      avatarURL: users.find((u) => u.id === clip.creator_id)?.profileImageUrl,
-      content,
-      embeds: [createClipEmbed(clip, games, videos)],
-    });
+    const msg = await fetch(`${webhookUrl}?wait=true`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        username: clip.creator_name,
+        avatar_url: users.find((u) => u.id === clip.creator_id)
+          ?.profileImageUrl,
+        content,
+        embeds: [createClipEmbed(clip, games, videos)],
+      }),
+    }).then((res) => res.json());
     postedIds.push(clip.id);
     messageMap[clip.id] = msg;
   }
@@ -284,7 +294,6 @@ export async function handleStreamer(
   useService = false,
 ) {
   const tokens = await getTokens();
-  const webhookClient = new WebhookClient({ url: webhookUrl });
   const broadcaster = await fetchUsersByLogins(tokens, [broadcasterLogin]);
   if (!broadcaster) {
     console.error(
@@ -318,7 +327,7 @@ export async function handleStreamer(
         ({ messageMap, postedIds } = await processClips(
           tokens,
           clips,
-          webhookClient,
+          webhookUrl,
           {
             suppressUntitled,
             showCreatedDate,
@@ -368,7 +377,7 @@ export async function handleStreamer(
     console.log(
       `${new Date().toISOString()} - ${broadcasterDisplayName} (${broadcasterLogin}) - ${JSON.stringify(clips, null, 2)}`,
     );
-    await processClips(tokens, clips, webhookClient, {
+    await processClips(tokens, clips, webhookUrl, {
       suppressUntitled,
       showCreatedDate,
     });
