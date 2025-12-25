@@ -21,28 +21,33 @@ async function getTokens() {
       method: "POST",
     },
   ).then(async (res) => {
-    let result = await res.json();
+    const result = await res.json();
     result.expires_at = new Date(Date.now() + result.expires_in * 1000);
     return result;
   });
   return tokens;
 }
 
-async function fetchTwitch(endpoint, tokens) {
+async function fetchTwitch(endpoint) {
+  if (!tokens.access_token) tokens = await getTokens();
   const res = await fetch(`${API_BASE_URL}${endpoint}`, {
     headers: {
       "Client-ID": process.env.TWITCH_CLIENT_ID,
       Authorization: `Bearer ${tokens.access_token}`,
     },
   });
+  if (res.status == 401) {
+    tokens = await getTokens();
+    return await fetchTwitch(endpoint);
+  }
   return await res.json();
 }
 
-async function fetchUsersByLogins(tokens, logins) {
+async function fetchUsersByLogins(logins) {
   if (logins.length > 100) throw new Error("Too many users");
   if (logins.length < 1) return [];
   const query = `?login=${logins.join("&login=")}`;
-  const data = await fetchTwitch(`/users${query}`, tokens);
+  const data = await fetchTwitch(`/users${query}`);
   return data.data.map(({ id, login, display_name, profile_image_url }) => ({
     id,
     login,
@@ -51,11 +56,11 @@ async function fetchUsersByLogins(tokens, logins) {
   }));
 }
 
-async function fetchUsersByIds(tokens, ids) {
+async function fetchUsersByIds(ids) {
   if (ids.length > 100) throw new Error("Too many users");
   if (ids.length < 1) return [];
   const query = `?id=${ids.join("&id=")}`;
-  const data = await fetchTwitch(`/users${query}`, tokens);
+  const data = await fetchTwitch(`/users${query}`);
   return data.data.map(({ id, login, display_name, profile_image_url }) => ({
     id,
     login,
@@ -64,19 +69,19 @@ async function fetchUsersByIds(tokens, ids) {
   }));
 }
 
-async function fetchVideosByIds(tokens, ids) {
+async function fetchVideosByIds(ids) {
   if (ids.length > 100) throw new Error("Too many videos");
   if (ids.length < 1) return [];
   const query = `?id=${ids.join("&id=")}`;
-  const data = await fetchTwitch(`/videos${query}`, tokens);
+  const data = await fetchTwitch(`/videos${query}`);
   return data.data.map(({ id, title }) => ({ id, title }));
 }
 
-async function fetchGamesByIds(tokens, ids) {
+async function fetchGamesByIds(ids) {
   if (ids.length > 100) throw new Error("Too many games");
   if (ids.length < 1) return [];
   const query = `?id=${ids.join("&id=")}`;
-  const data = await fetchTwitch(`/games${query}`, tokens);
+  const data = await fetchTwitch(`/games${query}`);
   return data.data.map(({ id, name, box_art_url }) => ({
     id,
     name,
@@ -84,10 +89,9 @@ async function fetchGamesByIds(tokens, ids) {
   }));
 }
 
-async function fetchClips(tokens, broadcasterId, date) {
+async function fetchClips(broadcasterId, date) {
   const data = await fetchTwitch(
     `/clips?broadcaster_id=${broadcasterId}&first=100&started_at=${date.toISOString()}`,
-    tokens,
   );
   return data.data;
 }
@@ -147,7 +151,6 @@ function createClipEmbed(clip, games) {
 }
 
 async function processClips(
-  tokens,
   clips,
   webhookUrl,
   options,
@@ -160,9 +163,9 @@ async function processClips(
   const videoIds = [...new Set(clips.map((c) => c.video_id).filter(Boolean))]; // Make sure there are no duplicate entries
   const gameIds = [...new Set(clips.map((c) => c.game_id).filter(Boolean))]; // Make sure there are no duplicate entries
   const [users, videos, games] = await Promise.all([
-    fetchUsersByIds(tokens, creatorIds),
-    fetchVideosByIds(tokens, videoIds),
-    fetchGamesByIds(tokens, gameIds),
+    fetchUsersByIds(creatorIds),
+    fetchVideosByIds(videoIds),
+    fetchGamesByIds(gameIds),
   ]);
   for (const clip of clips) {
     if (suppressUntitled) {
@@ -294,8 +297,7 @@ export async function handleStreamer(
   showCreatedDate,
   useService = false,
 ) {
-  const tokens = await getTokens();
-  const broadcaster = await fetchUsersByLogins(tokens, [broadcasterLogin]);
+  const broadcaster = await fetchUsersByLogins([broadcasterLogin]);
   if (!broadcaster) {
     console.error(
       `Error retrieving broadcaster info. Response from Twitch: ${JSON.stringify(
@@ -318,15 +320,12 @@ export async function handleStreamer(
     );
     setInterval(async () => {
       try {
-        const tokens = await getTokens();
-        if (tokens.expires_at < new Date()) token = await getTokens();
-        let date = new Date(Math.floor(Date.now() / 1000) * 1000 - 5 * 60000);
-        let clips = await fetchClips(tokens, broadcasterId, date);
+        const date = new Date(Math.floor(Date.now() / 1000) * 1000 - 5 * 60000);
+        const clips = await fetchClips(broadcasterId, date);
         console.log(
           `${new Date().toISOString()} - ${broadcasterDisplayName} (${broadcasterLogin}) - ${JSON.stringify(clips, null, 2)}`,
         );
         ({ messageMap, postedIds } = await processClips(
-          tokens,
           clips,
           webhookUrl,
           {
@@ -345,7 +344,7 @@ export async function handleStreamer(
     const pollingIntervalNumber = parseInt(
       pollingInterval.substring(0, pollingInterval.length - 1),
     );
-    let date = new Date();
+    const date = new Date();
     switch (pollingInterval.substring(pollingInterval.length - 1)) {
       case "d":
         date.setDate(date.getDate() - pollingIntervalNumber);
@@ -373,12 +372,11 @@ export async function handleStreamer(
         );
         return;
     }
-    const tokens = await getTokens();
-    const clips = await fetchClips(tokens, broadcasterId, date);
+    const clips = await fetchClips(broadcasterId, date);
     console.log(
       `${new Date().toISOString()} - ${broadcasterDisplayName} (${broadcasterLogin}) - ${JSON.stringify(clips, null, 2)}`,
     );
-    await processClips(tokens, clips, webhookUrl, {
+    await processClips(clips, webhookUrl, {
       suppressUntitled,
       showCreatedDate,
     });
