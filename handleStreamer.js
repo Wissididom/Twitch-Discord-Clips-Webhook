@@ -1,5 +1,3 @@
-import { EmbedBuilder } from "discord.js";
-
 const API_BASE_URL = "https://api.twitch.tv/helix";
 
 let tokens = {
@@ -97,10 +95,10 @@ async function fetchClips(tokens, broadcasterId, date) {
 function createClipEmbed(clip, games) {
   const game = games.find((x) => x.id === clip.game_id);
 
-  return new EmbedBuilder()
-    .setTitle(clip.title.trim())
-    .setURL(clip.url)
-    .addFields(
+  return {
+    title: clip.title.trim(),
+    url: clip.url,
+    fields: [
       { name: "Game", value: game?.name ?? "N/A", inline: true },
       { name: "Streamer", value: clip.broadcaster_name ?? "N/A", inline: true },
       { name: "Clipper", value: clip.creator_name ?? "N/A", inline: true },
@@ -142,9 +140,10 @@ function createClipEmbed(clip, games) {
             : "N/A",
         inline: true,
       },
-    )
-    .setThumbnail(game?.boxart)
-    .setImage(clip.thumbnail_url);
+    ],
+    thumbnail: { url: game?.boxart },
+    image: { url: clip.thumbnail_url },
+  };
 }
 
 async function processClips(
@@ -183,27 +182,27 @@ async function processClips(
       let anythingChanged = existing?.content !== content;
       let embedChanged = false;
       if (embed) {
-        const newEmbed = new EmbedBuilder();
+        const newEmbed = {};
         const fieldUpdates = {
           title: {
             current: embed.title,
             new: clip.title?.trim(),
-            setter: (val) => newEmbed.setTitle(val),
+            setter: (val) => (newEmbed.title = val),
           },
           url: {
             current: embed.url,
             new: clip.url,
-            setter: (val) => newEmbed.setURL(val),
+            setter: (val) => (newEmbed.url = val),
           },
           thumbnail: {
             current: embed.thumbnail,
             new: game?.boxart,
-            setter: (val) => newEmbed.setThumbnail(val),
+            setter: (val) => (newEmbed.thumbnail = { url: val }),
           },
           image: {
             current: embed.image,
             new: clip.thumbnail_url,
-            setter: (val) => newEmbed.setImage(val),
+            setter: (val) => (newEmbed.image = { url: val }),
           },
         };
         for (const key in fieldUpdates) {
@@ -241,7 +240,8 @@ async function processClips(
             anythingChanged = true;
             embedChanged = true;
           }
-          newEmbed.addFields({
+          if (!newEmbed.fields) newEmbed.fields = [];
+          newEmbed.fields.push({
             name: field.name,
             value: newValue,
             inline: true,
