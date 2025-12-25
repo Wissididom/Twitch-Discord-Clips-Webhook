@@ -264,7 +264,7 @@ async function processClips(
       }
       continue;
     }
-    const msg = await fetch(`${webhookUrl}?wait=true`, {
+    const resp = await fetch(`${webhookUrl}?wait=true`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -276,9 +276,12 @@ async function processClips(
         content,
         embeds: [createClipEmbed(clip, games)],
       }),
-    }).then((res) => res.json());
-    postedIds.push(clip.id);
-    messageMap[clip.id] = msg;
+    });
+    if (resp.ok) {
+      const json = await resp.json();
+      postedIds.push(clip.id);
+      messageMap[clip.id] = json;
+    }
   }
   return { messageMap, postedIds };
 }
