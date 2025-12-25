@@ -13,7 +13,6 @@
   "author": "Wissididom",
   "license": "MIT",
   "dependencies": {
-    "discord.js": "^14.25.1",
     "dotenv": "^17.2.3",
     "node-cron": "^4.2.1"
   },

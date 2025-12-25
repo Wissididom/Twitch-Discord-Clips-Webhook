@@ -5,7 +5,7 @@ import { handleStreamer } from "./handleStreamer.js";
 
 const config = JSON.parse(fs.readFileSync(".config.json"));
 
-for (let streamer of config) {
+for (const streamer of config) {
   console.log(
     "Schedule job: " +
       JSON.stringify(streamer, (key, value) => {
