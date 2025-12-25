@@ -37,7 +37,7 @@ async function fetchTwitch(endpoint, tokens) {
       Authorization: `Bearer ${tokens.access_token}`,
     },
   });
-  return res.json();
+  return await res.json();
 }
 
 async function fetchUsersByLogins(tokens, logins) {
