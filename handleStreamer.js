@@ -94,9 +94,8 @@ async function fetchClips(tokens, broadcasterId, date) {
   return data.data;
 }
 
-function createClipEmbed(clip, games, videos) {
+function createClipEmbed(clip, games) {
   const game = games.find((x) => x.id === clip.game_id);
-  const video = videos.find((x) => x.id === clip.videos_id);
 
   return new EmbedBuilder()
     .setTitle(clip.title.trim())
@@ -179,7 +178,6 @@ async function processClips(
     if (postedIds.includes(clip.id)) {
       // Don't post clips that were already posted. Edit them, because the Clip will get returned even if no title was set yet.
       const game = games.find((x) => x.id === clip.game_id);
-      const video = videos.find((x) => x.id === clip.videos_id);
       const existing = messageMap[clip.id];
       const embed = existing?.embeds[0];
       let anythingChanged = existing?.content !== content;
@@ -276,7 +274,7 @@ async function processClips(
         avatar_url: users.find((u) => u.id === clip.creator_id)
           ?.profileImageUrl,
         content,
-        embeds: [createClipEmbed(clip, games, videos)],
+        embeds: [createClipEmbed(clip, games)],
       }),
     }).then((res) => res.json());
     postedIds.push(clip.id);
