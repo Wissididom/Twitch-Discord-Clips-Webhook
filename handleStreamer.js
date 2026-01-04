@@ -39,6 +39,13 @@ async function fetchTwitch(endpoint) {
   if (res.status == 401) {
     tokens = await getTokens();
     return await fetchTwitch(endpoint);
+  } else if (res.status == 429) {
+    const retryAfter = parseInt(response.headers.get("Retry-After") | "0", 10);
+    if (retryAfter > 0) {
+      console.log(`Rate limit hit. Retrying after ${retryAfter}s...`);
+      await new Promise((resolve) => setTimeout(resolve, retryAfter * 1000)); // wait for the retry period
+      return await fetchTwitch(endpoint);
+    }
   }
   return await res.json();
 }
