@@ -8,6 +8,8 @@ on:
 
 jobs:
   check-format:
+    permissions:
+      contents: read
     name: Check Format
     runs-on: ubuntu-latest
     steps:
