@@ -1,5 +1,8 @@
 name: Prettier Formatting
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: ["master", "main"]
@@ -8,8 +11,6 @@ on:
 
 jobs:
   check-format:
-    permissions:
-      contents: read
     name: Check Format
     runs-on: ubuntu-latest
     steps:
