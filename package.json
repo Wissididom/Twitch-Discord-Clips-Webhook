@@ -17,6 +17,6 @@
     "node-cron": "^4.2.1"
   },
   "devDependencies": {
-    "prettier": "^3.8.1"
+    "prettier": "^3.8.2"
   }
 }
