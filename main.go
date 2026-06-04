@@ -69,12 +69,12 @@ func main() {
 
 		if streamer.Cron != nil && *streamer.Cron != "" {
 			cronExpr := *streamer.Cron
-			
+
 			// Add timezone to cron expression if provided
 			if streamer.Timezone != nil && *streamer.Timezone != "" {
 				cronExpr = "CRON_TZ=" + *streamer.Timezone + " " + cronExpr
 			}
-			
+
 			twitchLogin := streamer.TwitchLogin
 			discordWebhook := streamer.DiscordWebhook
 			_, err := c.AddFunc(cronExpr, func() {
