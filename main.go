@@ -40,7 +40,9 @@ func main() {
 		log.Fatalf("Error parsing config: %v", err)
 	}
 
-	c := cron.New()
+	c := cron.New(
+		cron.WithSeconds(),
+	)
 
 	for _, streamer := range config {
 		// Set defaults
