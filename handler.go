@@ -288,7 +288,7 @@ func fetchClips(broadcasterId string, date time.Time) ([]Clip, error) {
 	endpoint := fmt.Sprintf(
 		"/clips?broadcaster_id=%s&first=100&started_at=%s",
 		broadcasterId,
-		date.Format(time.RFC3339),
+		date.UTC().Format(time.RFC3339),
 	)
 
 	body, err := fetchTwitch(endpoint)
@@ -296,7 +296,6 @@ func fetchClips(broadcasterId string, date time.Time) ([]Clip, error) {
 		return nil, err
 	}
 
-	fmt.Printf("fetchClips: %s", body)
 	var response ClipResponse
 	if err := json.Unmarshal(body, &response); err != nil {
 		return nil, err
