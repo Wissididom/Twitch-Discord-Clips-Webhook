@@ -4,7 +4,7 @@
 
 # Go binaries
 /twitch-discord-clips-webhook
-/twitch-discord-clips-webhook-*
+/Twitch-Discord-Clips-Webhook
 
 # IDE
 .vscode/
