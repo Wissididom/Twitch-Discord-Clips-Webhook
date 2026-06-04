@@ -576,7 +576,7 @@ func handleStreamer(
 		messageMap := make(map[string]DiscordMessage)
 		postedIds := make([]string, 0)
 
-		log.Printf("Running setInterval for %s (%s) - Clips should now be checked every 5 minutes",
+		log.Printf("Creating ticker for %s (%s) - Clips should now be checked every 5 minutes",
 			broadcasterDisplayName, broadcasterLogin)
 
 		ticker := time.NewTicker(5 * time.Minute)
