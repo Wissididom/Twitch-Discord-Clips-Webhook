@@ -78,7 +78,6 @@ func main() {
 			twitchLogin := streamer.TwitchLogin
 			discordWebhook := streamer.DiscordWebhook
 			_, err := c.AddFunc(cronExpr, func() {
-				log.Printf("Running cron job for %s with cron expression: %s", twitchLogin, cronExpr)
 				if err := handleStreamer(
 					twitchLogin,
 					discordWebhook,
@@ -94,16 +93,18 @@ func main() {
 				log.Printf("Error adding cron job for %s: %v", streamer.TwitchLogin, err)
 			}
 		} else {
-			if err := handleStreamer(
-				streamer.TwitchLogin,
-				streamer.DiscordWebhook,
-				pollingInterval,
-				suppressUntitled,
-				showCreatedDate,
-				true,
-			); err != nil {
-				log.Printf("Error handling streamer: %v", err)
-			}
+			go func() {
+				if err := handleStreamer(
+					streamer.TwitchLogin,
+					streamer.DiscordWebhook,
+					pollingInterval,
+					suppressUntitled,
+					showCreatedDate,
+					true,
+				); err != nil {
+					log.Printf("Error handling streamer: %v", err)
+				}
+			}()
 		}
 	}
 

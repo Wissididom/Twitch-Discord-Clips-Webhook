@@ -296,6 +296,7 @@ func fetchClips(broadcasterId string, date time.Time) ([]Clip, error) {
 		return nil, err
 	}
 
+	fmt.Printf("fetchClips: %s", body)
 	var response ClipResponse
 	if err := json.Unmarshal(body, &response); err != nil {
 		return nil, err
