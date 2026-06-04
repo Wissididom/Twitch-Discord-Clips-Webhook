@@ -40,9 +40,9 @@ func main() {
 		log.Fatalf("Error parsing config: %v", err)
 	}
 
-	c := cron.New(
-		cron.WithSeconds(),
-	)
+	c := cron.New(cron.WithParser(cron.NewParser(
+		cron.SecondOptional | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor,
+	)))
 
 	for _, streamer := range config {
 		// Set defaults
@@ -69,20 +69,29 @@ func main() {
 
 		if streamer.Cron != nil && *streamer.Cron != "" {
 			cronExpr := *streamer.Cron
+			
+			// Add timezone to cron expression if provided
+			if streamer.Timezone != nil && *streamer.Timezone != "" {
+				cronExpr = "CRON_TZ=" + *streamer.Timezone + " " + cronExpr
+			}
+			
+			twitchLogin := streamer.TwitchLogin
+			discordWebhook := streamer.DiscordWebhook
 			_, err := c.AddFunc(cronExpr, func() {
+				log.Printf("Running cron job for %s with cron expression: %s", twitchLogin, cronExpr)
 				if err := handleStreamer(
-					streamer.TwitchLogin,
-					streamer.DiscordWebhook,
+					twitchLogin,
+					discordWebhook,
 					pollingInterval,
 					suppressUntitled,
 					showCreatedDate,
 					false,
 				); err != nil {
-					log.Printf("Error handling streamer: %v", err)
+					log.Printf("Error handling streamer %s: %v", twitchLogin, err)
 				}
 			})
 			if err != nil {
-				log.Printf("Error adding cron job: %v", err)
+				log.Printf("Error adding cron job for %s: %v", streamer.TwitchLogin, err)
 			}
 		} else {
 			if err := handleStreamer(
