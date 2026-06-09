@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  twitch-discord-clips-webhook:
+    build: .
+    container_name: twitch-discord-clips-webhook
+    restart: unless-stopped
+    volumes:
+      - ./.env:/app/.env:ro
+      - ./.config.json:/app/.config.json:ro
+    environment:
+      - TZ=UTC

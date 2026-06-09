@@ -1,7 +1,7 @@
-name: Prettier Formatting
+name: Go Vetting
 
 permissions:
-  contents: read
+  "contents": "read"
 
 on:
   push:
@@ -10,16 +10,17 @@ on:
     branches: ["master", "main"]
 
 jobs:
-  check-format:
-    name: Check Format
-    runs-on: ubuntu-latest
+  formatting:
+    name: Vetting
+    runs-on: "ubuntu-latest"
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-      - name: Install dependencies
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.26.3"
+      - name: go vet
         run: |
-          npm ci
-      - name: Run prettier
-        run: |
-          npm run format
+          go vet
           git --no-pager diff --exit-code --color=never
